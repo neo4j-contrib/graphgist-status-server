@@ -10,15 +10,31 @@ var fs = require('fs');
 var app = express();
 
 app.configure(function () {
-	app.set('port', process.env.PORT || 3000);
+    app.set('port', process.env.PORT || 3000);
 });
 
 var childProcess = require('child_process')
 var phantomjs = require('phantomjs')
 var binPath = phantomjs.path
 var path = require('path')
-var gistStatusCache = {}
-var CACHE_TIMEOUT_DAYS = 1 //days
+var CACHE_TIMEOUT_DAYS = 1 * 24 * 60 * 60 * 1000 //days
+
+var rtg = require("url").parse(process.env.REDISTOGO_URL);
+var redis = require("redis").createClient(rtg.port, rtg.hostname);
+redis.auth(rtg.auth.split(":")[1]);
+
+redis.on("error", function (err) {
+    console.log("Error " + err);
+});
+
+app.get('/resetCache', function (req, res) {
+    console.log("Flushing Redis ");
+    redis.flushdb( function (err, didSucceed) {
+        console.log(didSucceed); // true
+    });
+    res.write("OK");
+    res.end();
+});
 
 
 app.get('/', function (req, res) {
@@ -27,39 +43,35 @@ app.get('/', function (req, res) {
     var body = 'Checking graphgist at ' + url;
     var OK = 0;
     var FAIL = 1;
-    console.log("cache: " + JSON.stringify(gistStatusCache));
-    if (gistStatusCache[url]) {
-        if (gistStatusCache[url].date.getDate() + CACHE_TIMEOUT_DAYS < new Date()) {
-            console.log("found cached status " + JSON.stringify(gistStatusCache[url]));
-            var status = gistStatusCache[url].status;
-            send_response(status, res);
-            return;
-        } else {
-            console.log("invalidating cached status" + JSON.stringify(gistStatusCache[url]));
-            gistStatusCache[url] = null;
-        }
+//    console.log("cache: " + JSON.stringify(gistStatusCache));
+    redis.get(url, function (err, reply) {
+        // reply is null when the key is missing
+        console.log("redis reply",reply);
 
-    }
-    var childArgs = [path.join(__dirname, './checkstatus.js'), url]
-    childProcess.execFile(binPath, childArgs, function (err, stdout, stderr) {
-//                console.log(arguments);
-            var status = FAIL;
-            if (stdout.indexOf("status: Errors") !== -1) {
-                gistStatusCache[url] = {
-                    date: new Date(),
-                    status: FAIL
-                }
-            } else {
-                gistStatusCache[url] = {
-                    date: new Date(),
-                    status: OK
-                }
-                status = OK;
+        if (reply) {
+            var entry = JSON.parse(reply);
+            if (entry.date + CACHE_TIMEOUT_DAYS > new Date().getTime()) {
+                console.log("found cached status " + JSON.stringify(entry));
+                var status = entry.status;
+                send_response(status, res);
+                return;
             }
-            send_response(status, res);
         }
-    )
+        runGraphGist(url, res);
+    });
 
+    runGraphGist = function (url, res) {
+        var childArgs = [path.join(__dirname, './checkstatus.js'), url]
+        childProcess.execFile(binPath, childArgs, function (err, stdout, stderr) {
+                var entry = {
+                    status: stdout.indexOf("status: Errors")!= -1 ? FAIL : OK,
+                    date: new Date().getTime()
+                }
+                redis.set(url, JSON.stringify(entry), redis.print);
+                send_response(entry.status, res);
+            }
+        )
+    }
 
     send_response = function (status, res) {
         console.log("sending response:" + status);
