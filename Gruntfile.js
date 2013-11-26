@@ -5,11 +5,13 @@ module.exports = function (grunt) {
         pkg: grunt.file.readJSON('package.json'),
         express: {
             options: {
-                // Override defaults here
+                // Setting to `false` will effectively just run `node path/to/server.js`
+                background: false
             },
             dev: {
                 options: {
-                    script: 'app/server.js'
+                    script: 'app/server.js',
+                    node_env: 'dev'
                 }
             },
             prod: {
@@ -22,9 +24,9 @@ module.exports = function (grunt) {
         watch: {
             scripts: {
                 files: ['**/*.js'],
-                tasks: ['express'],
+                tasks: ['express:dev'],
                 options: {
-                    spawn: false
+                    nospawn: true //Without this option specified express won't be reloaded
                 }
             }
         }
@@ -33,6 +35,6 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-express-server');
     grunt.loadNpmTasks('grunt-contrib-watch');
     // Default task(s).
-    grunt.registerTask('default', ['express']);
+    grunt.registerTask('default', [ 'express:dev', "watch" ]);
 
 };
