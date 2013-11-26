@@ -1,0 +1,11 @@
+== The Graphgist build status badge server
+
+
+== Start locally
+
+[source,bash]
+----
+npm install -g grunt-cli
+npm install
+grunt watch
+----
