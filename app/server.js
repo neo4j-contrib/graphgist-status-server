@@ -1,3 +1,8 @@
+process.on('uncaughtException', function (err) {
+    console.log("Uncaught Exception", err)
+    console.log(err.stack)
+});
+
 var express = require('express');
 var fs = require('fs');
 //var checkstatus = require('./checkstatus');
