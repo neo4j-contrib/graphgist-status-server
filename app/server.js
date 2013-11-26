@@ -14,6 +14,10 @@ var path = require('path')
 var gistStatusCache = {}
 var CACHE_TIMEOUT_DAYS = 1 //days
 
+app.configure(function () {
+	app.set('port', process.env.PORT || 3000);
+});
+
 app.get('/', function (req, res) {
     var url = req.query.url;
 //    console.log(url);
