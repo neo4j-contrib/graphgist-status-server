@@ -17,7 +17,7 @@ var childProcess = require('child_process')
 var phantomjs = require('phantomjs')
 var binPath = phantomjs.path
 var path = require('path')
-var CACHE_TIMEOUT_DAYS = 1 * 24 * 60 * 60 * 1000 //days
+var CACHE_TIMEOUT_DAYS = 7 * 24 * 60 * 60 * 1000 //days
 
 var rtg = require("url").parse(process.env.REDISTOGO_URL);
 var redis = require("redis").createClient(rtg.port, rtg.hostname);
