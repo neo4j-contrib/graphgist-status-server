@@ -29,7 +29,7 @@ redis.on("error", function (err) {
 
 app.get('/resetCache', function (req, res) {
     console.log("Flushing Redis ");
-    redis.flushdb( function (err, didSucceed) {
+    redis.flushdb(function (err, didSucceed) {
         console.log(didSucceed); // true
     });
     res.write("OK");
@@ -46,7 +46,7 @@ app.get('/', function (req, res) {
 //    console.log("cache: " + JSON.stringify(gistStatusCache));
     redis.get(url, function (err, reply) {
         // reply is null when the key is missing
-        console.log("redis reply",reply);
+        console.log("redis reply", reply);
 
         if (reply) {
             var entry = JSON.parse(reply);
@@ -64,7 +64,7 @@ app.get('/', function (req, res) {
         var childArgs = [path.join(__dirname, './checkstatus.js'), url]
         childProcess.execFile(binPath, childArgs, function (err, stdout, stderr) {
                 var entry = {
-                    status: stdout.indexOf("status: Errors")!= -1 ? FAIL : OK,
+                    status: stdout.indexOf("status: Errors") != -1 ? FAIL : OK,
                     date: new Date().getTime()
                 }
                 redis.set(url, JSON.stringify(entry), redis.print);
@@ -76,6 +76,7 @@ app.get('/', function (req, res) {
     send_response = function (status, res) {
         console.log("sending response:" + status);
         res.writeHead(200, {'Content-Type': 'image/png' });
+        res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
         var img = fs.readFileSync('./app/img/fail.png');
         if (status == OK) {
             img = fs.readFileSync('./app/img/ok.png');
