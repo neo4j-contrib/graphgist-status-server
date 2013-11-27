@@ -76,7 +76,7 @@ app.get('/', function (req, res) {
     send_response = function (status, res) {
         console.log("sending response:" + status);
         res.writeHead(200, {'Content-Type': 'image/png' });
-        res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
+//        res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
         var img = fs.readFileSync('./app/img/fail.png');
         if (status == OK) {
             img = fs.readFileSync('./app/img/ok.png');
