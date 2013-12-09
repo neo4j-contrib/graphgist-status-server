@@ -37,28 +37,33 @@ app.get('/resetCache', function (req, res) {
 });
 
 
+//URL example: <img src="https://graphgist-status.herokuapp.com/?url=http://gist.neo4j.org/?6019125&execute=true" alt="">
 app.get('/', function (req, res) {
     var url = req.query.url;
-//    console.log(url);
+    var execute = req.query.execute;
+    console.log(url, execute);
     var body = 'Checking graphgist at ' + url;
     var OK = 0;
     var FAIL = 1;
-//    console.log("cache: " + JSON.stringify(gistStatusCache));
-    redis.get(url, function (err, reply) {
-        // reply is null when the key is missing
-        console.log("redis reply", reply);
-
-        if (reply) {
-            var entry = JSON.parse(reply);
-            if (entry.date + CACHE_TIMEOUT_DAYS > new Date().getTime()) {
-                console.log("found cached status " + JSON.stringify(entry));
-                var status = entry.status;
-                send_response(status, res);
-                return;
-            }
-        }
+    if (execute) {
         runGraphGist(url, res);
-    });
+    } else {
+        redis.get(url, function (err, reply) {
+            // reply is null when the key is missing
+            console.log("redis reply", reply);
+
+            if (reply) {
+                var entry = JSON.parse(reply);
+                if (entry.date + CACHE_TIMEOUT_DAYS > new Date().getTime()) {
+                    console.log("found cached status " + JSON.stringify(entry));
+                    var status = entry.status;
+                    send_response(status, res);
+                    return;
+                }
+            }
+            runGraphGist(url, res);
+        });
+    }
 
     runGraphGist = function (url, res) {
         var childArgs = [path.join(__dirname, './checkstatus.js'), url]
